@@ -35,7 +35,7 @@ In this example we can see that Feature Report 18 has a 2-bit value at bits 8
 and 9 that is the Resolution Multiplier (used for high-resolution wheel
 scrolling). It is set to the Logical value 1.
 
-Let's set it to 0 to get clunky scrolling on this device! 
+Let's set it to 0 to get clunky scrolling on this device!
 
 To set a given byte in a feature report, set the hexadecimal value or use `xx` to leave the setting as-is.
 ```
@@ -51,7 +51,7 @@ usages at bits 8+9 and bit 12, respectively.
 ```
 # Set bits 8/9 and bit 12 to 1
 $ hid-feature set /dev/hidraw2 --report-id=23 xx 11
-# Set only bits 8/9 but not bit 12 
+# Set only bits 8/9 but not bit 12
 $ hid-feature set /dev/hidraw2 --report-id=23 xx 01
 # Set only bit 12 but not bits 8/9
 $ hid-feature set /dev/hidraw2 --report-id=23 xx 10
