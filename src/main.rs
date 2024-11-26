@@ -189,15 +189,15 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
         "Bytes",
     ];
 
+    cprintln!(Styles::Header, "{}", headers.join(" ┃ "));
     cprintln!(
         Styles::Header,
         "{}",
-        headers.join(" ┃ ")
-    );
-    cprintln!(
-        Styles::Header,
-        "{}",
-        headers.iter().map(|h| str::repeat("━", h.len())).collect::<Vec<String>>().join("━╇━")
+        headers
+            .iter()
+            .map(|h| str::repeat("━", h.len()))
+            .collect::<Vec<String>>()
+            .join("━╇━")
     );
 
     for report in reports {
@@ -222,8 +222,7 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
         };
         let rid = report.report_id().map_or(0, u8::from);
         let mut device = hidraw::Device::open(path)?;
-        let r =
-            unsafe { device.get_feature_report_with_size::<FeatureReport>(rid, fetch_size) }?;
+        let r = unsafe { device.get_feature_report_with_size::<FeatureReport>(rid, fetch_size) }?;
         let values = r[..report_size].to_vec();
         for field in report.fields() {
             let min: i32;
@@ -348,10 +347,7 @@ fn hid_feature() -> Result<()> {
 
     match cli.command {
         Commands::ListDevices {} => list_devices(),
-        Commands::List {
-            report_id,
-            path,
-        } => list(&path, &report_id),
+        Commands::List { report_id, path } => list(&path, &report_id),
         Commands::Set {
             report_id,
             bytes,
