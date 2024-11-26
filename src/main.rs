@@ -145,7 +145,7 @@ fn list_devices() -> Result<()> {
 
     hidraws.sort_by(|a, b| human_sort::compare(a, b));
     for path in hidraws.iter() {
-        let name = hidraw_name(&path)?;
+        let name = hidraw_name(path)?;
         println!("{path:13} - {name}");
     }
     Ok(())
