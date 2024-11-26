@@ -338,10 +338,12 @@ fn hid_feature() -> Result<()> {
     let cli = Cli::parse();
 
     // Bit lame but easier to just set the env for owo_colors to figure out the rest
-    match cli.color {
-        ClapColorArg::Never => std::env::set_var("NO_COLOR", "1"),
-        ClapColorArg::Auto => {}
-        ClapColorArg::Always => std::env::set_var("FORCE_COLOR", "1"),
+    unsafe {
+        match cli.color {
+            ClapColorArg::Never => std::env::set_var("NO_COLOR", "1"),
+            ClapColorArg::Auto => {}
+            ClapColorArg::Always => std::env::set_var("FORCE_COLOR", "1"),
+        }
     }
 
     match cli.command {
