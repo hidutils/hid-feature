@@ -229,8 +229,8 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
             let count: usize;
             let hutstr: String;
 
-            let offset = field.bits().start() / 8;
-            let end = field.bits().end() / 8;
+            let offset = field.bits().start / 8;
+            let end = (field.bits().end - 1) / 8;
 
             let value: i32;
 
@@ -239,7 +239,7 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
                     min = i32::from(var.logical_minimum);
                     max = i32::from(var.logical_maximum) as u32;
                     count = 1;
-                    value = var.extract_i32(&values)?;
+                    value = var.extract(&values)?.into();
                     hutstr = match hut::Usage::new_from_page_and_id(
                         u16::from(var.usage.usage_page),
                         u16::from(var.usage.usage_id),
@@ -252,7 +252,7 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
                     min = i32::from(arr.logical_minimum);
                     max = i32::from(arr.logical_maximum) as u32;
                     count = usize::from(arr.report_count);
-                    value = arr.extract_one_i32(&values, 0)?;
+                    value = arr.extract_one(&values, 0)?.into();
                     hutstr = "<not implemented>".into();
                 }
                 _ => continue,
@@ -261,9 +261,9 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
             println!(
                 "{:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ {value:5} │ {}",
                 report_id as i8,
-                field.bits().end() - field.bits().start() + 1,
-                field.bits().start(),
-                field.bits().end(),
+                field.bits().end - field.bits().start,
+                field.bits().start,
+                field.bits().end - 1,
                 print_bytes(&values[offset..=end])
             );
         }
