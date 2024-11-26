@@ -13,5 +13,5 @@ clap = { version = "4.5.4", features = ["derive"] }
 hidraw = { version = "0.0.7", features = ["unsafe_reports"] }
 hidreport = "0.3.0"
 human-sort = "0.2.2"
-hut = "0.2.0"
+hut = "0.3.0"
 owo-colors = { version = "4.0.0", features = ["supports-colors"] }
