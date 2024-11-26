@@ -1,0 +1,74 @@
+name: test suite
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    name: Cargo test on Ubuntu (clang=${{ matrix.use_clang }})
+    strategy:
+      matrix:
+        include:
+          - use_clang: false
+          - use_clang: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies on ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install libelf-dev
+          if [ "${{ matrix.use_clang }}" == "true" ]
+          then
+            sudo apt-get install clang
+            clang --version
+          else
+            sudo apt-get remove clang
+            sudo rm -rf /usr/bin/clang*
+          fi
+      - run: cargo test --all-features
+
+  format:
+    name: cargo format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --check
+
+  release-build:
+     name: cargo build --release
+     runs-on: ubuntu-22.04
+     needs: [build-and-test]
+     steps:
+       - uses: actions/checkout@v4
+       - uses: dtolnay/rust-toolchain@stable
+       - name: Install dependencies on ubuntu
+         run: |
+           sudo apt-get update
+           sudo apt-get install libelf-dev clang
+       - run: cargo build --release
+       - run: cp target/release/hid-feature .
+       - uses: actions/upload-artifact@v4
+         with:
+           name: hid-feature
+           path: |
+             hid-feature
+
+  create-release:
+    runs-on: ubuntu-22.04
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [release-build]
+    permissions:
+      contents: write
+    steps:
+      - uses: dawidd6/action-download-artifact@v6
+        with:
+          name: hid-feature
+          skip_unpack: true
+      - name: Install dependencies on ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install libelf-dev clang
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: hid-feature.zip
