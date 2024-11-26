@@ -128,8 +128,7 @@ enum Commands {
     },
 }
 
-fn hidraw_name(path: &Path) -> Result<String> {
-    let file = path.file_name().unwrap().to_string_lossy();
+fn hidraw_name(file: &String) -> Result<String> {
     let uevent_path = PathBuf::from(format!("/sys/class/hidraw/{}/device/uevent", file));
     let uevent = std::fs::read_to_string(uevent_path)?;
     let name = uevent
@@ -144,16 +143,16 @@ fn hidraw_name(path: &Path) -> Result<String> {
 
 fn list_devices() -> Result<()> {
     println!("Available HID devices:");
-    for path in std::fs::read_dir("/dev/")?.flatten().filter_map(|f| {
-        let name = f.file_name().into_string().unwrap().clone();
-        if name.starts_with("hidraw") {
-            Some(f.path())
-        } else {
-            None
-        }
-    }) {
+
+    let mut hidraws: Vec<String> = std::fs::read_dir("/dev/")?
+        .flatten()
+        .flat_map(|f| f.file_name().into_string())
+        .filter(|name| name.starts_with("hidraw"))
+        .collect();
+
+    hidraws.sort_by(|a, b| human_sort::compare(a, b));
+    for path in hidraws.iter() {
         let name = hidraw_name(&path)?;
-        let path = path.to_string_lossy();
         println!("{path:13} - {name}");
     }
     Ok(())
