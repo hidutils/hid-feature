@@ -214,7 +214,16 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
         };
         let rid = report.report_id().map_or(0, u8::from);
         let mut device = hidraw::Device::open(path)?;
-        let r = unsafe { device.get_feature_report_with_size::<FeatureReport>(rid, fetch_size) }?;
+        let res = unsafe { device.get_feature_report_with_size::<FeatureReport>(rid, fetch_size) };
+        if let Err(e) = res {
+            if e.kind() == std::io::ErrorKind::BrokenPipe {
+                bail!(e);
+            }
+            let errorstr = format!("Failed to fetch report: {e}");
+            println!("{rid:^6} │ {errorstr}");
+            continue;
+        }
+        let r = res.unwrap();
         let values = r[..report_size].to_vec();
         for field in report.fields() {
             let min: i32;
