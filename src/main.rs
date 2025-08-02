@@ -122,7 +122,7 @@ enum Commands {
 }
 
 fn hidraw_name(file: &String) -> Result<String> {
-    let uevent_path = PathBuf::from(format!("/sys/class/hidraw/{}/device/uevent", file));
+    let uevent_path = PathBuf::from(format!("/sys/class/hidraw/{file}/device/uevent"));
     let uevent = std::fs::read_to_string(uevent_path)?;
     let name = uevent
         .lines()
