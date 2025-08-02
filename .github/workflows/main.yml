@@ -41,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo clippy --no-deps
+      - run: cargo clippy --no-deps -- -D warnings
 
   release-build:
      name: cargo build --release
