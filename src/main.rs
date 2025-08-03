@@ -307,27 +307,27 @@ fn set(path: &Path, filter_id: &Option<u8>, bytes: &[String], offset: usize) -> 
         None => report_size + 1,
     };
     let mut device = hidraw::Device::open(path)?;
-    let r = unsafe { device.get_feature_report_with_size::<[u8; 20]>(rid, fetch_size) }?;
 
-    // prepend the report ID again if need be
+    // values is what we submit to the kernel for SetFeature, it must have the report ID (or zero
+    // if None) in the first byte.
     let mut values: FeatureReport = [0; 1024];
-    let rid_off = match report.report_id() {
-        Some(_) => 0,
-        None => {
-            values[0] = rid;
-            1
+    values[0] = rid;
+
+    // Don't fetch reports if we're overwriting all of it anyway. This
+    // papers over devices where the feature report exists and (presumably)
+    // can be changed but it fails to fetch the current value.
+    if bytes.len() != report_size || offset > 0 || bytes.iter().any(|v| v == "xx") {
+        let r = unsafe { device.get_feature_report_with_size::<[u8; 20]>(rid, fetch_size) }?;
+        // The returned byte array may not have a report ID, we always have one
+        let offset = report.report_id().map_or(0, |_| 1);
+        for (i, v) in r[0..report_size].iter().enumerate() {
+            values[i + offset] = *v;
         }
-    };
-    for (i, v) in r[0..report_size].iter().enumerate() {
-        values[i + rid_off] = *v;
     }
 
-    for (i, val) in bytes.iter().enumerate() {
-        let idx = offset + rid_off + i;
+    for (idx, val) in bytes.iter().enumerate() {
         if val != "xx" {
-            values[idx] = u8::from_str_radix(val, 16)?;
-        } else {
-            values[idx] = r[i];
+            values[idx + 1 + offset] = u8::from_str_radix(val, 16)?;
         }
     }
 
