@@ -251,7 +251,14 @@ fn list(
         };
 
         let r = res.unwrap();
-        let values = r[..report_size].to_vec();
+        let nbytes = r.len();
+        if nbytes < fetch_size {
+            println!(
+                "Warning: Report {rid_str} is of size {} but we only have {} bytes",
+                fetch_size, nbytes
+            );
+        }
+        let values = r[..std::cmp::min(report_size, nbytes)].to_vec();
         for field in report.fields() {
             let min: i32;
             let max: u32;
@@ -268,7 +275,11 @@ fn list(
                     min = i32::from(var.logical_minimum);
                     max = i32::from(var.logical_maximum) as u32;
                     count = 1;
-                    value = var.extract(&values)?.into();
+                    if end >= nbytes {
+                        value = 0;
+                    } else {
+                        value = var.extract(&values)?.into();
+                    }
                     hutstr = match hut::Usage::new_from_page_and_id(
                         u16::from(var.usage.usage_page),
                         u16::from(var.usage.usage_id),
@@ -281,19 +292,32 @@ fn list(
                     min = i32::from(arr.logical_minimum);
                     max = i32::from(arr.logical_maximum) as u32;
                     count = usize::from(arr.report_count);
-                    value = arr.extract_one(&values, 0)?.into();
+                    if end >= nbytes {
+                        value = 0;
+                    } else {
+                        value = arr.extract_one(&values, 0)?.into();
+                    }
                     hutstr = "<not implemented>".into();
                 }
                 _ => continue,
             };
 
-            println!(
-                "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ {value:5} │ {}",
-                field.bits().end - field.bits().start,
-                field.bits().start,
-                field.bits().end - 1,
-                print_bytes(&values[offset..=end])
-            );
+            if end >= nbytes {
+                println!(
+                    "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ <???> │ <insufficient data>",
+                    field.bits().end - field.bits().start,
+                    field.bits().start,
+                    field.bits().end - 1,
+                )
+            } else {
+                println!(
+                    "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ {value:5} │ {}",
+                    field.bits().end - field.bits().start,
+                    field.bits().start,
+                    field.bits().end - 1,
+                    print_bytes(&values[offset..=end])
+                );
+            }
         }
     }
 
