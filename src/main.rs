@@ -86,6 +86,17 @@ enum Commands {
 
         /// Path to the /dev/hidraw node
         path: PathBuf,
+
+        /// Skip the given Report IDs
+        #[arg(long)]
+        skip_report_id: Option<Vec<u8>>,
+
+        /// Ignore EPIPE if it occurs.
+        ///
+        /// On some devices EPIPE may happen when listing one feature report
+        /// but the device will continue to respond for other reports.
+        #[arg(long)]
+        ignore_broken_pipe: bool,
     },
 
     Set {
@@ -161,7 +172,12 @@ fn report_descriptor(path: &Path) -> Result<ReportDescriptor> {
     Ok(ReportDescriptor::try_from(&bytes)?)
 }
 
-fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
+fn list(
+    path: &Path,
+    filter_id: &Option<u8>,
+    skip_report_id: &Option<Vec<u8>>,
+    ignore_epipe: bool,
+) -> Result<()> {
     let rdesc = report_descriptor(path)?;
 
     let reports = rdesc.feature_reports();
@@ -202,6 +218,11 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
                 continue;
             }
         }
+        if let Some(skip_report_id) = skip_report_id {
+            if skip_report_id.iter().any(|id| id == &report_id) {
+                continue;
+            }
+        }
 
         // Our report's length only includes the report ID if there is one but the ioctl
         // always needs the first byte to be the report ID.
@@ -216,11 +237,11 @@ fn list(path: &Path, filter_id: &Option<u8>) -> Result<()> {
         let mut device = hidraw::Device::open(path)?;
         let res = unsafe { device.get_feature_report_with_size::<FeatureReport>(rid, fetch_size) };
         if let Err(e) = res {
-            if e.kind() == std::io::ErrorKind::BrokenPipe {
+            let errorstr = format!("Failed to fetch report {rid}: {e}");
+            println!("{rid:^6} │ {errorstr}");
+            if e.kind() == std::io::ErrorKind::BrokenPipe && !ignore_epipe {
                 bail!(e);
             }
-            let errorstr = format!("Failed to fetch report: {e}");
-            println!("{rid:^6} │ {errorstr}");
             continue;
         }
         let r = res.unwrap();
@@ -350,7 +371,12 @@ fn hid_feature() -> Result<()> {
 
     match cli.command {
         Commands::ListDevices {} => list_devices(),
-        Commands::List { report_id, path } => list(&path, &report_id),
+        Commands::List {
+            report_id,
+            path,
+            skip_report_id,
+            ignore_broken_pipe,
+        } => list(&path, &report_id, &skip_report_id, ignore_broken_pipe),
         Commands::Set {
             report_id,
             bytes,
