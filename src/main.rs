@@ -244,6 +244,12 @@ fn list(
             }
             continue;
         }
+
+        let rid_str = match report.report_id() {
+            Some(id) => format!("{}", u8::from(id)),
+            None => String::from(""),
+        };
+
         let r = res.unwrap();
         let values = r[..report_size].to_vec();
         for field in report.fields() {
@@ -282,8 +288,7 @@ fn list(
             };
 
             println!(
-                "{:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ {value:5} │ {}",
-                report_id as i8,
+                "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ {value:5} │ {}",
                 field.bits().end - field.bits().start,
                 field.bits().start,
                 field.bits().end - 1,
