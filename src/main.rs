@@ -208,6 +208,20 @@ fn list(
             .join("━╇━")
     );
 
+    let spacing = reports.iter().fold(3, |spacing, report| {
+        report.fields().iter().fold(spacing, |spacing, field| {
+            let end = (field.bits().end - 1) / 8;
+            let lmax = match field {
+                Field::Variable(var) => i32::from(var.logical_maximum) as u32,
+                Field::Array(arr) => i32::from(arr.logical_maximum) as u32,
+                _ => 0,
+            };
+            let abs_max = std::cmp::max(end, lmax as usize) as f64;
+            let digits = (abs_max.log10().floor() as usize) + 1;
+            std::cmp::max(spacing, digits)
+        })
+    });
+
     for report in reports {
         let report_id: u8 = match report.report_id() {
             None => 0xff,
@@ -304,18 +318,20 @@ fn list(
 
             if end >= nbytes {
                 println!(
-                    "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ <???> │ <insufficient data>",
+                    "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:spacing$}..={max:<spacing$} │ {count:^5} │ <???> │ <insufficient data>",
                     field.bits().end - field.bits().start,
                     field.bits().start,
                     field.bits().end - 1,
+                    spacing=spacing,
                 )
             } else {
                 println!(
-                    "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:3}..={:<3} │ {min:4}..={max:<4} │ {count:^5} │ {value:5} │ {}",
+                    "{rid_str:^6} │ {hutstr:48} │ {:^4} │ {:spacing$}..={:<spacing$} │ {min:spacing$}..={max:<spacing$} │ {count:^5} │ {value:5} │ {}",
                     field.bits().end - field.bits().start,
                     field.bits().start,
                     field.bits().end - 1,
-                    print_bytes(&values[offset..=end])
+                    print_bytes(&values[offset..=end]),
+                    spacing=spacing,
                 );
             }
         }
