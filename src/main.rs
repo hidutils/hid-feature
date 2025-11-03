@@ -66,7 +66,7 @@ struct Cli {
 enum Commands {
     /// List available hidraw devices
     ListDevices {},
-    /// List available Feature Reports on a device.
+    /// List available Feature Reports and their values on a device.
     ///
     /// The output lists the Report ID (see --report-id), the Feature's usage,
     /// the number of bits and their position in the report as well as the logical
